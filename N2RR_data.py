@@ -249,6 +249,8 @@ for row in hcp_slab_N.select():
 #### Make N pandas frames, and combine it with the rest
 ##################################################################
 
+EN2=-15.468067 # using PW500 for *N binding energeis gives a slight change for EN2.
+
 d_bcc_N = {
 'Mname': bcc_name_N,
 'N_energy':np.asarray(bcc_energy_N)-np.asarray(bcc_energy)-0.5*EN2}
