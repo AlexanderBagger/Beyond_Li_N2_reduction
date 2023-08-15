@@ -83,6 +83,13 @@ bulk2_atom2_count=[]
 bulk2_energy=[]
 bulk2_name=[]
 
+MxHy_name=[]
+MxHy_Mname=[]
+MxHy_count=[]
+MxHy_energy=[]
+MxHy_M=[]
+MxHy_H=[]
+
 MxNy_name=[]
 MxNy_Mname=[]
 MxNy_count=[]
@@ -115,6 +122,17 @@ for row in dM.select(relax='unitcell'):
         MxNy_energy.append(row.energy)
         MxNy_M.append(row.natoms-sym.count('N')-sym.count('H'))
         MxNy_N.append(sym.count('N'))
+
+# If M_x H_z
+    elif any('H' in string for string in data) and sym.count('O')==0 and sym.count('H')>0:
+        #print('MxHy' ,name)
+        MxHy_name.append(name)
+        MxHy_Mname.append(sym[0])
+        MxHy_count.append(row.natoms)
+        MxHy_energy.append(row.energy)
+        MxHy_M.append(row.natoms-sym.count('O')-sym.count('H'))
+        MxHy_H.append(sym.count('H'))
+
 # If M_x
     elif sym.count('H')==0 and sym.count('O')==0 and sym.count('N')==0:
         #print('Mx' ,name)
@@ -140,6 +158,15 @@ d_MxNy = {
 'MxNy_N':MxNy_N}
 df_MxNy = pd.DataFrame(data=d_MxNy)
 
+d_MxHy = {
+'MxHy_name': MxHy_name,
+'Mname':MxHy_Mname,
+'MxHy_count':MxHy_count,
+'MxHy_energy':MxHy_energy,
+'MxHy_M':MxHy_M,
+'MxHy_H':MxHy_H}
+df_MxHy = pd.DataFrame(data=d_MxHy)
+
 d_Mx = {
 'Mx_name': Mx_name,
 'Mname':Mx_Mname,
@@ -150,6 +177,7 @@ df_Mx = pd.DataFrame(data=d_Mx)
 
 # Creating big datadframe (merge the pandas frames)
 df=pd.merge(df_Mx, df_MxNy, on="Mname", how="left")
+df=pd.merge(df, df_MxHy, on="Mname", how="left")
 
 
 
@@ -162,6 +190,9 @@ df=pd.merge(df_Mx, df_MxNy, on="Mname", how="left")
 # Calculate formation energies
 df['Nitride Formation Energy']=(df['MxNy_energy']-df['MxNy_M']*df['Mx_energy']/df['Mx_count'] 
     -df['MxNy_N']*EN2*0.5)/df['MxNy_count']
+
+df['Hydride Formation Energy']=(df['MxHy_energy']-df['MxHy_M']*df['Mx_energy']/df['Mx_count'] 
+    -df['MxHy_H']*EH2*0.5)/df['MxHy_count']
 
 
 ###############################
@@ -442,6 +473,25 @@ plt.locator_params(axis='x',nbins=5);plt.grid(True)
 plt.xticks(fontsize = size3); plt.yticks(fontsize = size3)
 
 for k in range(0,len(df['V SHE'].values)):
+    plt.text(df['V SHE'].values[k], df['Hydride Formation Energy'].values[k], df['Mname'].values[k], fontsize=size1)
+
+    if df['Dissociation'].values[k]=='True':
+        p1=plt.scatter(df['V SHE'].values[k], df['Hydride Formation Energy'].values[k], c='b', s=sdot)
+    elif df['Dissociation'].values[k]=='False':
+        p2=plt.scatter(df['V SHE'].values[k], df['Hydride Formation Energy'].values[k], c='r', s=sdot)
+
+plt.xlabel(r'Standard Reduction Potential',fontsize=size1)
+plt.ylabel(r'Hydride Formation Energy [eV/Atom]',fontsize=size1)
+plt.xlim([-3.2,1.55])
+l = ax.legend([p1,p2],['N-N cleave phase','N-N coupling phase'],handler_map={tuple: HandlerTuple(ndivide=None)}, loc=4, fontsize=size1-8,markerscale=1.0)
+
+
+fig = plt.figure(figsize=(14,7));
+ax=fig.gca()
+plt.locator_params(axis='x',nbins=5);plt.grid(True)
+plt.xticks(fontsize = size3); plt.yticks(fontsize = size3)
+
+for k in range(0,len(df['V SHE'].values)):
     plt.text(df['V SHE'].values[k], df['N_energy'].values[k], df['Mname'].values[k], fontsize=size1)
 
     if df['Dissociation'].values[k]=='True':
@@ -453,4 +503,4 @@ plt.xlabel(r'Standard Reduction Potential',fontsize=size1)
 plt.ylabel(r'N* Binding Energy [eV/]',fontsize=size1)
 plt.xlim([-3.2,1.55])
 l = ax.legend([p1,p2],['N-N cleave phase','N-N coupling phase'],handler_map={tuple: HandlerTuple(ndivide=None)}, loc=4, fontsize=size1-8,markerscale=1.0)
-#plt.savefig('Nitride_Formation_vs_SHE.png', dpi=400, bbox_inches='tight')
+
