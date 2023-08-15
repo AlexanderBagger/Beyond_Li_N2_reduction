@@ -66,7 +66,6 @@ Mol=ase.db.connect('databases/molecules.db')
 ENH3=Mol.get(formula='NH3').energy
 EH2=Mol.get(formula='H2').energy
 EN2=Mol.get(formula='N2').energy
-EH2O=Mol.get(formula='H2O').energy
 
 dict_bulk={}
 dM=ase.db.connect('databases/bulk_spin.db')
@@ -83,28 +82,6 @@ bulk2_atom2=[]
 bulk2_atom2_count=[]
 bulk2_energy=[]
 bulk2_name=[]
-
-MxOyHz_name=[]
-MxOyHz_Mname=[]
-MxOyHz_count=[]
-MxOyHz_energy=[]
-MxOyHz_M=[]
-MxOyHz_O=[]
-MxOyHz_H=[]
-
-MxHy_name=[]
-MxHy_Mname=[]
-MxHy_count=[]
-MxHy_energy=[]
-MxHy_M=[]
-MxHy_H=[]
-
-MxOy_name=[]
-MxOy_Mname=[]
-MxOy_count=[]
-MxOy_energy=[]
-MxOy_M=[]
-MxOy_O=[]
 
 MxNy_name=[]
 MxNy_Mname=[]
@@ -129,40 +106,8 @@ for row in dM.select(relax='unitcell'):
     Atoms=read('databases/bulk_spin.db@id=%s' %row.id)[0]
     sym=Atoms.get_chemical_symbols()
     
-# If M_x O_y H_z
-    if (any('H' in string for string in data)
-        and any('O' in string for string in data) and sym.count('H')>0 and sym.count('O')>0
-        and name!='Hf'):
-        #print('MxOyHz' ,name)
-        MxOyHz_name.append(name)
-        MxOyHz_Mname.append(sym[0])
-        MxOyHz_count.append(row.natoms)
-        MxOyHz_energy.append(row.energy)
-        MxOyHz_M.append(row.natoms-sym.count('O')-sym.count('H'))
-        MxOyHz_O.append(sym.count('O'))
-        MxOyHz_H.append(sym.count('H'))
-    
-# If M_x H_z
-    elif any('H' in string for string in data) and sym.count('O')==0 and sym.count('H')>0:
-        #print('MxHy' ,name)
-        MxHy_name.append(name)
-        MxHy_Mname.append(sym[0])
-        MxHy_count.append(row.natoms)
-        MxHy_energy.append(row.energy)
-        MxHy_M.append(row.natoms-sym.count('O')-sym.count('H'))
-        MxHy_H.append(sym.count('H'))
-# If M_x O_y
-    elif sym.count('H')==0 and any('O' in string for string in data)==True and sym.count('O')>0:
-        #print('MxOy' ,name)
-        MxOy_name.append(name)
-        MxOy_Mname.append(sym[0])
-        MxOy_count.append(row.natoms)
-        MxOy_energy.append(row.energy)
-        MxOy_M.append(row.natoms-sym.count('O')-sym.count('H'))
-        MxOy_O.append(sym.count('O'))
-
 # If M_x N_y
-    elif any('N' in string for string in data) and sym.count('N')>0 and sym.count('H')==0:
+    if any('N' in string for string in data) and sym.count('N')>0 and sym.count('H')==0 and sym.count('O')==0:
         #print('MxNy' ,name)
         MxNy_name.append(name)
         MxNy_Mname.append(sym[0])
@@ -178,43 +123,13 @@ for row in dM.select(relax='unitcell'):
         Mx_count.append(row.natoms)
         Mx_energy.append(row.energy)
         Mx_M.append(row.natoms-sym.count('O')-sym.count('H'))
-        
-    else:
-        print('REST' ,name)
+    
 
 
 #############################################################
 #### Create pandas data frames
 ##################################################################
 
-d_MxOyHz = {
-'MxOyHz_name': MxOyHz_name,
-'Mname':MxOyHz_Mname,
-'MxOyHz_count':MxOyHz_count,
-'MxOyHz_energy':MxOyHz_energy,
-'MxOyHz_M':MxOyHz_M,
-'MxOyHz_O':MxOyHz_O,
-'MxOyHz_H':MxOyHz_H}
-df_MxOyHz = pd.DataFrame(data=d_MxOyHz)
-
-
-d_MxHy = {
-'MxHy_name': MxHy_name,
-'Mname':MxHy_Mname,
-'MxHy_count':MxHy_count,
-'MxHy_energy':MxHy_energy,
-'MxHy_M':MxHy_M,
-'MxHy_H':MxHy_H}
-df_MxHy = pd.DataFrame(data=d_MxHy)
-
-d_MxOy = {
-'MxOy_name': MxOy_name,
-'Mname':MxOy_Mname,
-'MxOy_count':MxOy_count,
-'MxOy_energy':MxOy_energy,
-'MxOy_M':MxOy_M,
-'MxOy_O':MxOy_O}
-df_MxOy = pd.DataFrame(data=d_MxOy)
 
 d_MxNy = {
 'MxNy_name': MxNy_name,
@@ -235,9 +150,7 @@ df_Mx = pd.DataFrame(data=d_Mx)
 
 # Creating big datadframe (merge the pandas frames)
 df=pd.merge(df_Mx, df_MxNy, on="Mname", how="left")
-df=pd.merge(df, df_MxOy, on="Mname", how="left")
-df=pd.merge(df, df_MxHy, on="Mname", how="left")
-df=pd.merge(df, df_MxOyHz, on="Mname", how="left")
+
 
 
 
@@ -249,37 +162,6 @@ df=pd.merge(df, df_MxOyHz, on="Mname", how="left")
 # Calculate formation energies
 df['Nitride Formation Energy']=(df['MxNy_energy']-df['MxNy_M']*df['Mx_energy']/df['Mx_count'] 
     -df['MxNy_N']*EN2*0.5)/df['MxNy_count']
-
-df['Hydride Formation Energy']=(df['MxHy_energy']-df['MxHy_M']*df['Mx_energy']/df['Mx_count'] 
-    -df['MxHy_H']*EH2*0.5)/df['MxHy_count']
-
-df['Oxide Formation Energy']=(df['MxOy_energy']-df['MxOy_M']*df['Mx_energy']/df['Mx_count'] 
-    -df['MxOy_O']*(EH2O-EH2))/df['MxOy_count']
-
-df['MxOyHz Formation Energy']=(df['MxOyHz_energy']-df['MxOyHz_M']*df['Mx_energy']/df['Mx_count'] 
-    -df['MxOyHz_O']*(EH2O-EH2)-df['MxOyHz_H']*EH2*0.5)/df['MxOyHz_count']
-
-
-# calculating ammonia reaction energies:
-df['MxOyHz Reaction']=(df['MxOyHz_energy']+df['MxNy_N']*ENH3 
-    -df['MxNy_energy']-df['MxOyHz_O']*EH2O
-    -(df['MxOyHz_H']+3*df['MxNy_N']-2*df['MxOyHz_O'])*EH2*0.5
-    -(df['MxOyHz_M']-df['MxNy_M'])*(df['Mx_energy']/df['Mx_M']))/(df['MxNy_N'])
-
-df['MxOy Reaction']=(df['MxOy_energy']+df['MxNy_N']*ENH3 
-    -df['MxNy_energy']-df['MxOy_O']*EH2O
-    -(3*df['MxNy_N']-2*df['MxOy_O'])*EH2*0.5
-    -(df['MxOy_M']-df['MxNy_M'])*(df['Mx_energy']/df['Mx_M']))/(df['MxNy_N'])
-
-df['MxHy Reaction']=(df['MxHy_energy']+df['MxNy_N']*ENH3 
-    -df['MxNy_energy']
-    -(3*df['MxNy_N']+df['MxHy_H'])*EH2*0.5
-    -(df['MxHy_M']-df['MxNy_M'])*(df['Mx_energy']/df['Mx_M']))/(df['MxNy_N'])
-
-df['Mx Reaction']=(df['Mx_energy']+df['MxNy_N']*ENH3 
-    -df['MxNy_energy']
-    -(3*df['MxNy_N'])*EH2*0.5
-    -(df['Mx_M']-df['MxNy_M'])*(df['Mx_energy']/df['Mx_M']))/(df['MxNy_N'])
 
 
 ###############################
@@ -295,30 +177,20 @@ bcc_slab_N=ase.db.connect('databases/bcc_slab_N.db')
 fcc_slab_N=ase.db.connect('databases/fcc_slab_N.db')
 hcp_slab_N=ase.db.connect('databases/hcp_slab_N.db')
 
-bcc_slab_N2=ase.db.connect('databases/bcc_slab_N2.db')
-fcc_slab_N2=ase.db.connect('databases/fcc_slab_N2.db')
-hcp_slab_N2=ase.db.connect('databases/hcp_slab_N2.db')
-
 bcc_name=[]
 bcc_energy=[]
 bcc_name_N=[]
 bcc_energy_N=[]
-bcc_name_N2=[]
-bcc_energy_N2=[]
 
 fcc_name=[]
 fcc_energy=[]
 fcc_name_N=[]
 fcc_energy_N=[]
-fcc_name_N2=[]
-fcc_energy_N2=[]
 
 hcp_name=[]
 hcp_energy=[]
 hcp_name_N=[]
 hcp_energy_N=[]
-hcp_name_N2=[]
-hcp_energy_N2=[]
 
 
 for row in bcc_slab.select():
@@ -336,14 +208,7 @@ for row in bcc_slab_N.select():
     sym=Atoms.get_chemical_symbols()
     bcc_name_N.append(sym[0])
     bcc_energy_N.append(row.energy)
-    
-for row in bcc_slab_N2.select():
-    name=row.formula
-    data=seperate_string_number(name)
-    Atoms=read('databases/bcc_slab_N2.db@id=%s' %row.id)[0]
-    sym=Atoms.get_chemical_symbols()
-    bcc_name_N2.append(sym[0])
-    bcc_energy_N2.append(row.energy)
+
 
 for row in fcc_slab.select():
     name=row.formula
@@ -362,13 +227,6 @@ for row in fcc_slab_N.select():
     fcc_name_N.append(sym[0])
     fcc_energy_N.append(row.energy)
     
-for row in fcc_slab_N2.select():
-    name=row.formula
-    data=seperate_string_number(name)
-    Atoms=read('databases/fcc_slab_N2.db@id=%s' %row.id)[0]
-    sym=Atoms.get_chemical_symbols()
-    fcc_name_N2.append(sym[0])
-    fcc_energy_N2.append(row.energy)
     
 for row in hcp_slab.select():
         name=row.formula
@@ -386,13 +244,6 @@ for row in hcp_slab_N.select():
         hcp_name_N.append(sym[0])
         hcp_energy_N.append(row.energy)
         
-for row in hcp_slab_N2.select():
-        name=row.formula
-        data=seperate_string_number(name)
-        Atoms=read('databases/hcp_slab_N2.db@id=%s' %row.id)[0]
-        sym=Atoms.get_chemical_symbols()
-        hcp_name_N2.append(sym[0])
-        hcp_energy_N2.append(row.energy)
 
 #############################################################
 #### Make N pandas frames, and combine it with the rest
@@ -416,25 +267,6 @@ df_hcp_N = pd.DataFrame(data=d_hcp_N)
 df_N = df_bcc_N.append(df_fcc_N, ignore_index=True)
 df_N = df_N.append(df_hcp_N, ignore_index=True)
 df=pd.merge(df, df_N, on="Mname", how="left")
-
-d_bcc_N2 = {
-'Mname': bcc_name_N2,
-'N2_energy':np.asarray(bcc_energy_N2)-np.asarray(bcc_energy)-EN2}
-df_bcc_N2 = pd.DataFrame(data=d_bcc_N2)
-
-d_fcc_N2 = {
-'Mname': fcc_name_N2,
-'N2_energy':np.asarray(fcc_energy_N2)-np.asarray(fcc_energy)-EN2}
-df_fcc_N2 = pd.DataFrame(data=d_fcc_N2)
-
-d_hcp_N2 = {
-'Mname': hcp_name_N2,
-'N2_energy':np.asarray(hcp_energy_N2)-np.asarray(hcp_energy)-EN2}
-df_hcp_N2 = pd.DataFrame(data=d_hcp_N2)
-
-df_N2 = df_bcc_N2.append(df_fcc_N2, ignore_index=True)
-df_N2 = df_N2.append(df_hcp_N2, ignore_index=True)
-df=pd.merge(df, df_N2, on="Mname", how="left")
 
 
 #############################################################
@@ -573,8 +405,8 @@ ptable_plotter("ptable.csv", cmap="viridis", alpha=1.0, extended=False)
 #############################################################
 #### We drop some data that are strong outliers in the dataset
 ##################################################################
-df = df.drop(df[df['Mname']=='B'].index)
-df = df.drop(df[df['Mname']=='Nb'].index)
+#df = df.drop(df[df['Mname']=='B'].index)
+#df = df.drop(df[df['Mname']=='Nb'].index)
 df = df.drop(df[df['Mname']=='Cr'].index)
 
 
@@ -598,6 +430,25 @@ for k in range(0,len(df['V SHE'].values)):
 
 plt.xlabel(r'Standard Reduction Potential',fontsize=size1)
 plt.ylabel(r'Nitride Formation Energy [eV/Atom]',fontsize=size1)
+plt.xlim([-3.2,1.55])
+l = ax.legend([p1,p2],['N-N cleave phase','N-N coupling phase'],handler_map={tuple: HandlerTuple(ndivide=None)}, loc=4, fontsize=size1-8,markerscale=1.0)
+#plt.savefig('Nitride_Formation_vs_SHE.png', dpi=400, bbox_inches='tight')
+
+fig = plt.figure(figsize=(14,7));
+ax=fig.gca()
+plt.locator_params(axis='x',nbins=5);plt.grid(True)
+plt.xticks(fontsize = size3); plt.yticks(fontsize = size3)
+
+for k in range(0,len(df['V SHE'].values)):
+    plt.text(df['V SHE'].values[k], df['N_energy'].values[k], df['Mname'].values[k], fontsize=size1)
+
+    if df['Dissociation'].values[k]=='True':
+        p1=plt.scatter(df['V SHE'].values[k], df['N_energy'].values[k], c='b', s=sdot)
+    elif df['Dissociation'].values[k]=='False':
+        p2=plt.scatter(df['V SHE'].values[k], df['N_energy'].values[k], c='r', s=sdot)
+
+plt.xlabel(r'Standard Reduction Potential',fontsize=size1)
+plt.ylabel(r'N* Binding Energy [eV/]',fontsize=size1)
 plt.xlim([-3.2,1.55])
 l = ax.legend([p1,p2],['N-N cleave phase','N-N coupling phase'],handler_map={tuple: HandlerTuple(ndivide=None)}, loc=4, fontsize=size1-8,markerscale=1.0)
 #plt.savefig('Nitride_Formation_vs_SHE.png', dpi=400, bbox_inches='tight')
