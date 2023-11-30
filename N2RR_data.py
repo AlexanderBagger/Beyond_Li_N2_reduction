@@ -63,9 +63,14 @@ def seperate_string_number(string):
 #### load in molecule data 
 ##################################################################
 Mol=ase.db.connect('databases/molecules.db')
-ENH3=Mol.get(formula='NH3').energy
-EH2=Mol.get(formula='H2').energy
-EN2=Mol.get(formula='N2').energy
+
+ENH3=Mol.get(name='NH3').energy
+EH2=Mol.get(name='H2').energy
+EN2=Mol.get(name='N2').energy
+
+ENH3_PW500=Mol.get(name='NH3_PW500').energy
+EH2_PW500=Mol.get(name='H2_PW500').energy
+EN2_PW500=Mol.get(name='N2_PW500').energy
 
 dict_bulk={}
 dM=ase.db.connect('databases/bulk_spin.db')
@@ -280,21 +285,19 @@ for row in hcp_slab_N.select():
 #### Make N pandas frames, and combine it with the rest
 ##################################################################
 
-EN2=-15.468067 # using PW500 for *N binding energeis gives a slight change for EN2.
-
 d_bcc_N = {
 'Mname': bcc_name_N,
-'N_energy':np.asarray(bcc_energy_N)-np.asarray(bcc_energy)-0.5*EN2}
+'N_energy':np.asarray(bcc_energy_N)-np.asarray(bcc_energy)-0.5*EN2_PW500}
 df_bcc_N = pd.DataFrame(data=d_bcc_N)
 
 d_fcc_N = {
 'Mname': fcc_name_N,
-'N_energy':np.asarray(fcc_energy_N)-np.asarray(fcc_energy)-0.5*EN2}
+'N_energy':np.asarray(fcc_energy_N)-np.asarray(fcc_energy)-0.5*EN2_PW500}
 df_fcc_N = pd.DataFrame(data=d_fcc_N)
 
 d_hcp_N = {
 'Mname': hcp_name_N,
-'N_energy':np.asarray(hcp_energy_N)-np.asarray(hcp_energy)-0.5*EN2}
+'N_energy':np.asarray(hcp_energy_N)-np.asarray(hcp_energy)-0.5*EN2_PW500}
 df_hcp_N = pd.DataFrame(data=d_hcp_N)
 
 df_N = df_bcc_N.append(df_fcc_N, ignore_index=True)
