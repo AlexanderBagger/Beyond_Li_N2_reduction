@@ -253,7 +253,7 @@ for row in fcc_slab.select():
     sym=Atoms.get_chemical_symbols()
     fcc_name.append(name[0])
     fcc_energy.append(row.energy)
-    print(name)
+    #print(name)
 
 for row in fcc_slab_N.select():
     name=row.formula
@@ -413,13 +413,18 @@ df['Dissociation'].loc[df['Mname']=='Tl']='False'
 #atoms=read('../data/bulk_large.db@formula=Tl4N12')
 #view(atoms)
 
-#atoms=read('../data/bcc_slab_N.db@Na')
+
+atoms=read('databases/bcc_slab.db@')
+view(atoms)
+
+atoms=read('databases/bcc_slab_N.db@')
+view(atoms)
+
+
+#atoms=read('../data/fcc_slab_N.db@')
 #view(atoms)
 
-#atoms=read('../data/bcc_slab_N.db@Li')
-#view(atoms)
-
-#atoms=read('../data/hcp_slab_N.db@Mg')
+#atoms=read('../data/hcp_slab_N.db@')
 #view(atoms)
 
 #############################################################
